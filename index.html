@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>平行四边形面积学习</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+  .tabs { display: flex; background-color: #f1f1f1; }
+  .tab-button {
+    flex: 1;
+    padding: 12px;
+    cursor: pointer;
+    text-align: center;
+    border: none;
+    background-color: #f1f1f1;
+    font-size: 16px;
+  }
+  .tab-button.active { background-color: #ffffff; font-weight: bold; }
+  iframe { width: 100%; height: calc(100vh - 48px); border: none; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab-button active" onclick="showTab('平行四边形面积.html', this)">平行四边形面积</button>
+  <button class="tab-button" onclick="showTab('平行四边形拉动.html', this)">平行四边形拉动</button>
+</div>
+
+<iframe id="tabFrame" src="平行四边形面积.html"></iframe>
+
+<script>
+function showTab(url, btn) {
+  document.getElementById('tabFrame').src = url;
+
+  // 切换按钮样式
+  const buttons = document.querySelectorAll('.tab-button');
+  buttons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+
+</body>
+</html>

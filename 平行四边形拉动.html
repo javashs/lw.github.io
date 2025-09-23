@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>格子对齐的可拖动平行四边形</title>
+<style>
+  svg { border: 1px solid #ccc; background: #f9f9f9; display: block; margin: 20px auto; }
+  polygon { stroke-width: 2; stroke-linejoin: round; }
+  #initialShape { fill: rgba(128,128,128,0.3); stroke: gray; }
+  #shape { fill: rgba(59,130,246,0.3); stroke: black; }  /* <- 改这里 */
+  circle { fill: red; cursor: pointer; }
+  button { display: block; margin: 10px auto; padding: 5px 15px; font-size: 16px; }
+  line.grid { stroke: black; stroke-width: 1; }
+  .info { text-align: center; font-size: 18px; margin: 10px; }
+</style>
+</head>
+<body>
+
+<div class="info">
+  每个格子面积：<strong>1</strong> 平方米，当前面积：
+  <strong id="areaValue" style="display:none;">0</strong> 平方米
+</div>
+
+<div style="display:flex; justify-content:center; gap:10px; margin:10px;">
+  <button id="showAreaBtn">显示面积</button>
+  <button id="hideAreaBtn">隐藏面积</button>
+  <button id="resetBtn">复原矩形</button>
+</div>
+
+
+<svg id="canvas" width="1600" height="800">
+  <!-- 格子组 -->
+  <g id="grid"></g>
+
+  <!-- 初始矩形参考 -->
+  <polygon id="initialShape" points="0,0 0,0 0,0 0,0" style="display:none;"/>
+
+  <!-- 拖动矩形 -->
+  <polygon id="shape" points="0,0 0,0 0,0 0,0"/>
+
+  <!-- 上边左顶点可拖动 -->
+  <circle id="topLeft" class="drag" cx="0" cy="0" r="8"/>
+</svg>
+
+
+
+<script>
+  
+const svg = document.getElementById('canvas');
+const shape = document.getElementById('shape');
+const initialShape = document.getElementById('initialShape');
+const topLeft = document.getElementById('topLeft');
+const resetBtn = document.getElementById('resetBtn');
+const grid = document.getElementById('grid');
+const areaValue = document.getElementById('areaValue');
+let selected = null;
+
+// 格子参数
+const cellSize = 50;
+const cols = 32; // 水平方向格数
+const rows = 12; // 垂直方向格数
+const topLineRow = 4;  // 顶部线在第4行
+const bottomLineRow = 9; // 底部线在第9行
+
+// 绘制格子
+function drawGrid() {
+  grid.innerHTML = '';
+  for(let i=0; i<=cols; i++){
+    const x = i * cellSize;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', x);
+    line.setAttribute('y1', topLineRow*cellSize);
+    line.setAttribute('x2', x);
+    line.setAttribute('y2', bottomLineRow*cellSize);
+    line.setAttribute('class', 'grid');
+    grid.appendChild(line);
+  }
+  for(let j=topLineRow; j<=bottomLineRow; j++){
+    const y = j * cellSize;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', 0);
+    line.setAttribute('y1', y);
+    line.setAttribute('x2', cols*cellSize);
+    line.setAttribute('y2', y);
+    line.setAttribute('class', 'grid');
+    grid.appendChild(line);
+  }
+}
+
+drawGrid();
+
+// 初始化矩形坐标（对齐格子）
+const initialTopLeft = {x: 5*cellSize, y: topLineRow*cellSize};
+const initialTopRightX = 11*cellSize;
+const bottomLeft = {x: 5*cellSize, y: bottomLineRow*cellSize};
+const bottomRight = {x: 11*cellSize, y: bottomLineRow*cellSize};
+const rectHeight = bottomLeft.y - initialTopLeft.y;
+
+// 设置矩形
+function setInitialPoints() {
+  const points = [
+    `${initialTopLeft.x},${initialTopLeft.y}`,
+    `${initialTopRightX},${initialTopLeft.y}`,
+    `${bottomRight.x},${bottomRight.y}`,
+    `${bottomLeft.x},${bottomLeft.y}`
+  ].join(' ');
+
+  shape.setAttribute('points', points);
+  initialShape.setAttribute('points', points);
+  topLeft.cx.baseVal.value = initialTopLeft.x;
+  topLeft.cy.baseVal.value = initialTopLeft.y;
+
+  updateArea();
+}
+
+// 计算并显示面积
+function updateArea() {
+  const polygonPoints = shape.getAttribute('points').split(' ').map(p => {
+    const [x,y] = p.split(',').map(Number);
+    return {x,y};
+  });
+  // 使用平行四边形面积公式: |(x1-x0)*(y2-y1) - (y1-y0)*(x2-x1)|
+  const A = polygonPoints[0], B = polygonPoints[1], C = polygonPoints[2];
+  const baseLength = Math.abs(B.x - A.x) / cellSize;
+  const heightLength = Math.abs(C.y - B.y) / cellSize;
+  const area = baseLength * heightLength; // 每格 1 平方米
+  areaValue.textContent = area;
+}
+
+setInitialPoints();
+
+// 拖动逻辑
+topLeft.addEventListener('mousedown', e => {
+  selected = topLeft;
+
+  // 拖动开始时，把当前蓝色矩形位置复制到灰色矩形
+  const currentPoints = shape.getAttribute('points');
+  initialShape.setAttribute('points', currentPoints);
+  initialShape.style.display = 'inline'; // 显示灰色矩形参考
+});
+
+svg.addEventListener('mousemove', e => {
+  if (!selected) return;
+
+  let pt = svg.createSVGPoint();
+  pt.x = e.clientX;
+  pt.y = e.clientY;
+  let cursorpt = pt.matrixTransform(svg.getScreenCTM().inverse());
+
+  // y 固定
+  cursorpt.y = initialTopLeft.y;
+
+  // 对齐格子
+  cursorpt.x = Math.round(cursorpt.x / cellSize) * cellSize;
+
+  const dx = cursorpt.x - initialTopLeft.x;
+  const newTopRightX = initialTopRightX + dx;
+
+  topLeft.cx.baseVal.value = cursorpt.x;
+  topLeft.cy.baseVal.value = cursorpt.y;
+
+  const points = [
+    `${cursorpt.x},${cursorpt.y}`,
+    `${newTopRightX},${cursorpt.y}`,
+    `${bottomRight.x},${bottomRight.y}`,
+    `${bottomLeft.x},${bottomLeft.y}`
+  ].join(' ');
+
+  shape.setAttribute('points', points);
+
+  // 拖动中更新面积
+  updateArea();
+});
+
+window.addEventListener('mouseup', () => {
+  if (selected) {
+    selected = null;
+    // 拖动结束后，灰色矩形保留上一次蓝色矩形位置
+    // 蓝色矩形固定，灰色矩形作为参考
+    // 所以不需要隐藏 initialShape
+  }
+});
+// 显示/隐藏面积按钮
+showAreaBtn.addEventListener('click', () => {
+  updateArea();
+  areaValue.style.display = 'inline';
+});
+hideAreaBtn.addEventListener('click', () => {
+  areaValue.style.display = 'none';
+});
+// 复原按钮
+resetBtn.addEventListener('click', () => setInitialPoints());
+
+
+</script>
+</body>
+</html>
