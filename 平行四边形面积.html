@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-
+<title>底边固定斜拉平行四边形</title>
 <style>
   :root{
-    --cell: 52px; /* 单格大小，可调整 */
-    --cols: 16;   /* 视窗列数（用于留白） */
+    --cell: 52px; /* 单格大小 */
+    --cols: 16;   
   }
   html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;}
   .wrap{
@@ -27,16 +27,13 @@
     padding:18px;
     width: max-content;
   }
-
   .svg-wrap{
     width: calc(var(--cell) * var(--cols));
-    background: transparent; /* 取消背景格子 */
+    background: transparent;
     border-radius:8px;
     padding:10px;
-}
-
+  }
   svg{ display:block; width:100%; height:auto; background:transparent; user-select:none; touch-action:none;}
-
   .info{
     margin-top:12px;
     display:flex;
@@ -44,70 +41,38 @@
     align-items:center;
     justify-content:space-between;
   }
-
-  .info .left{
-    font-size:14px;
-    color:#111827;
-  }
-  .info .right{
-    font-size:13px;
-    color:#374151;
-  }
-
+  .info .left{ font-size:14px;color:#111827; }
+  .info .right{ font-size:13px;color:#374151; }
   .controls{
     margin-top:10px;
     display:flex;
     gap:12px;
     align-items:center;
   }
-
   .btn{
     background:#0ea5a4;color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;
   }
-  .small{
-    font-size:13px;color:#374151;
-  }
-
-  /* 控制点样式（只影响可视） */
-  .handle{
-    cursor:ew-resize;
-    touch-action:none;
-  }
-
-  /* 辅助文字 */
-  .hint{font-size:12px;color:#6b7280;margin-top:8px;}
+  .small{ font-size:13px;color:#374151; }
+  .handle{ cursor:ew-resize; touch-action:none; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="card">
     <div style="display:flex;align-items:center;gap:12px;">
-     
       <div class="small" style="margin-left:auto;font-size:20px;">每个格子： <strong id="cellSizeText">2</strong></div>
     </div>
 
     <div class="svg-wrap" id="svgWrap">
-      <!-- SVG 会由 JS 注入并绘制 -->
-      <svg id="paper" viewBox="0 0 432 288" xmlns="http://www.w3.org/2000/svg" aria-label="grid drawing">
-        <!-- grid lines drawn by background CSS; SVG will hold shapes -->
-        <defs>
-          <pattern id="lightGrid" width="36" height="36" patternUnits="userSpaceOnUse">
-            <path d="M 36 0 L 36 36 0 36" fill="none" stroke="rgba(0,0,0,0.03)" stroke-width="1"/>
-          </pattern>
-        </defs>
-
-        <!-- coordinate origin margin -->
+      <svg id="paper" xmlns="http://www.w3.org/2000/svg" aria-label="grid drawing">
         <g id="scene" transform="translate(36,36)"></g>
       </svg>
     </div>
 
     <div class="info">
-      <div class="left" style="font-size:18px;">
-  <!-- 长 = <strong id="base">6</strong> 米， 高 = <strong id="height">4</strong> 米 -->
-</div>
+      <div class="left" style="font-size:18px;">长 = <strong id="base">6</strong> 米，高 = <strong id="height">4</strong> 米</div>
       <div class="right">
-        <div style="font-size:18px;">平移 = <strong id="sValue">0</strong> 格</div>
-       <div style="font-size:18px;"> 面积 = <strong id="areaValue" style="display:none;">24</strong> 平方米</div>
+        <div style="font-size:18px;">面积 = <strong id="areaValue">24</strong> 平方米</div>
       </div>
     </div>
 
@@ -115,58 +80,73 @@
       <input id="sRange" type="range" min="0" max="20" step="0.1" value="0" style="width:260px;">
       <button id="snapBtn" class="btn">格点对齐</button>
       <button id="resetBtn" class="btn" style="background:#2563eb">矩形重置</button>
-        <button id="showAreaBtn" class="btn" style="background:#10b981">显示面积</button>
-  <button id="hideAreaBtn" class="btn" style="background:#f59e0b">隐藏面积</button>
+      <button id="showAreaBtn" class="btn" style="background:#10b981">显示面积</button>
+      <button id="hideAreaBtn" class="btn" style="background:#f59e0b">隐藏面积</button>
     </div>
   </div>
 </div>
 
 <script>
-  const areaDiv = document.getElementById('areaValue');
+const areaDiv = document.getElementById('areaValue');
 
-document.getElementById('showAreaBtn').addEventListener('click', ()=>{
-  areaDiv.style.display = 'inline'; // 显示面积
-});
+document.getElementById('showAreaBtn').addEventListener('click', ()=> areaDiv.style.display='inline');
+document.getElementById('hideAreaBtn').addEventListener('click', ()=> areaDiv.style.display='none');
 
-document.getElementById('hideAreaBtn').addEventListener('click', ()=>{
-  areaDiv.style.display = 'none'; // 隐藏面积
-});
 (function(){
-  // 参数（单位：格）
-  const base = 6;
-  const height = 4;
+  const base = 6, height = 4;
   const cell = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--cell')) || 36;
   document.getElementById('cellSizeText').textContent = '1平方米';
-  // SVG / scene
   const svg = document.getElementById('paper');
   const scene = document.getElementById('scene');
-
-  // we set viewBox size consistent with cell * (base + margins)
- const vbWidth = (base + 22) * cell;   // 原来 +6，现在 +20
-// add margins for shifts
-  const vbHeight = (height + 6) * cell;
+  const vbWidth = (base+22)*cell;
+  const vbHeight = (height+6)*cell;
   svg.setAttribute('viewBox', `0 0 ${vbWidth} ${vbHeight}`);
 
-  // origin offset within scene group (we already translated 36,36 in markup)
-  const originX = 0;
-  const originY = 0;
+  let s = 0; // 水平偏移
+  let currentHeight = height; // 当前高度
+  areaDiv.style.display = 'none';
 
-  // initial s (格)
-  let s = 0;
+  function sx(u){ return cell + u*cell + 0.5; }
+  function sy(v){ return cell + v*cell + 0.5; }
 
-  // helpers to convert grid units to pixels in SVG coords
-  function gx(u){ return originX + u * cell + cell; } // +cell for left margin
-  function gy(v){ return originY + (height - v) * cell + cell; } // flip y so 0 at bottom; but easier we use top-left
-  // We'll draw with y increasing downward: choose top-left at (cell,cell)
-  function sx(u){ return cell + u * cell+0.5; }
- function sy(v){ return cell + v * cell + 0.5; } // 纵坐标 0 在上，4 在下
+  function drawGrid(){
+    const old = document.getElementById('cellGrid'); if(old) old.remove();
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('id','cellGrid');
+    const cols = Math.ceil(vbWidth/cell);
+    const rows = Math.ceil(vbHeight/cell);
+    for(let i=0;i<=cols;i++){
+      const x=i*cell;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',x); line.setAttribute('y1',0); line.setAttribute('x2',x); line.setAttribute('y2',rows*cell);
+      line.setAttribute('stroke','black'); line.setAttribute('stroke-width','1');
+      g.appendChild(line);
+    }
+    for(let j=0;j<=rows;j++){
+      const y=j*cell;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',0); line.setAttribute('y1',y); line.setAttribute('x2',cols*cell); line.setAttribute('y2',y);
+      line.setAttribute('stroke','black'); line.setAttribute('stroke-width','1');
+      g.appendChild(line);
+    }
+    scene.appendChild(g);
+  }
 
-  // Create coordinate axes markers (optional small)
-  const guideGroup = document.createElementNS('http://www.w3.org/2000/svg','g');
-  guideGroup.setAttribute('id','guide');
-  scene.appendChild(guideGroup);
+  function drawLabels(){
+    const old = document.getElementById('labels'); if(old) old.remove();
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('id','labels');
+    for(let i=0;i<=base;i++){
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',sx(i)+6); t.setAttribute('y',sy(height)+18); t.setAttribute('font-size','26');
+      t.setAttribute('fill','rgba(0,0,0,0.6)'); t.textContent=i; g.appendChild(t);
+    }
+    for(let j=0;j<=height;j++){
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',sx(0)-18); t.setAttribute('y',sy(height-j)+4); t.setAttribute('font-size','26');
+      t.setAttribute('fill','rgba(0,0,0,0.6)'); t.textContent=j; g.appendChild(t);
+    }
+    scene.appendChild(g);
+  }
 
-  // draw rectangle/parallelogram polygon
   const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
   poly.setAttribute('fill','rgba(59,130,246,0.12)');
   poly.setAttribute('stroke','#2563eb');
@@ -174,285 +154,97 @@ document.getElementById('hideAreaBtn').addEventListener('click', ()=>{
   poly.setAttribute('stroke-linejoin','round');
   scene.appendChild(poly);
 
-  // draw cell grid within the scene using lines (so it aligns with shapes)
-function drawGrid(){
-  const old = document.getElementById('cellGrid');
-  if(old) old.remove();
-
-  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-  g.setAttribute('id','cellGrid');
-
-  // 计算 SVG 内最大格数
-  const vb = svg.viewBox.baseVal;
-  const cols = Math.ceil(vb.width / cell);
-  const rows = Math.ceil(vb.height / cell);
-
-  // 竖线
-  for(let i = 0; i <= cols; i++){
-    const x = i * cell;
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', x);
-    line.setAttribute('y1', 0);
-    line.setAttribute('x2', x);
-    line.setAttribute('y2', rows * cell);
-    line.setAttribute('stroke', 'black');
-    line.setAttribute('stroke-width', '1');
-    g.appendChild(line);
-  }
-
-  // 横线
-  for(let j = 0; j <= rows; j++){
-    const y = j * cell;
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', 0);
-    line.setAttribute('y1', y);
-    line.setAttribute('x2', cols * cell);
-    line.setAttribute('y2', y);
-    line.setAttribute('stroke', 'black');
-    line.setAttribute('stroke-width', '1');
-    g.appendChild(line);
-  }
-
-  scene.appendChild(g);
-}
-
-
-
-
-  // draw axes labels (numbers)
-  function drawLabels(){
-    const old = document.getElementById('labels'); if(old) old.remove();
-    const g = document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('id','labels');
-    // x labels from 0..base
-    for(let i=0;i<=base;i++){
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x', sx(i) + 6);
-      t.setAttribute('y', sy(height) + 18);
-      t.setAttribute('font-size','26');
-      t.setAttribute('fill','rgba(0,0,0,0.6)');
-      t.textContent = i;
-      g.appendChild(t);
-    }
-    // y labels from 0..height (bottom to top)
-   for(let j=0; j <= height; j++){
-  const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-  t.setAttribute('x', sx(0) - 18);
-  t.setAttribute('y', sy(height - j) + 4); // 关键：倒序显示
-  t.setAttribute('font-size','26');
-  t.setAttribute('fill','rgba(0,0,0,0.6)');
-  t.textContent = j;
-  g.appendChild(t);
-}
-    scene.appendChild(g);
-  }
-
-  // control handles (circles) - top-left and top-right
-  const handleA = document.createElementNS('http://www.w3.org/2000/svg','circle');
-  const handleB = document.createElementNS('http://www.w3.org/2000/svg','circle');
-  [handleA, handleB].forEach(h=>{
-    h.setAttribute('r',8);
-    h.setAttribute('fill','#fff');
-    h.setAttribute('stroke','#0ea5a4');
-    h.setAttribute('stroke-width',2);
-    h.classList.add('handle');
-    scene.appendChild(h);
+  const handleA=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  const handleB=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  [handleA,handleB].forEach(h=>{
+    h.setAttribute('r',8); h.setAttribute('fill','#fff'); h.setAttribute('stroke','#0ea5a4'); h.setAttribute('stroke-width',2);
+    h.classList.add('handle'); scene.appendChild(h);
   });
 
-  // base points (bottom) as invisible anchors for clarity
-  const bottomA = {x: sx(0), y: sy(height)};
-  const bottomB = {x: sx(base), y: sy(height)};
-
-  // update polygon + handles based on current s (单位：格)
+  const bottomY = sy(height);
   function updateVisualization(){
-    const sPx = s * cell;
-    // points: A(0,0) at top-left? We'll define rectangle with top-left at (0,0) in grid coords:
-    // polygon vertices in grid coords (x,y):
-    // A: (0,0) top-left  -> translate to svg coords:
-    const A = {x: sx(0), y: sy(0)}; // top-left
-    const B = {x: sx(base), y: sy(0)}; // top-right bottom? Wait careful:
-    // We want rectangle with height = 4 downward. So top y should be sy(0), bottom sy(4)
-    const bottomY = sy(height);
-    const topY = sy(0);
-    // After shearing: top edge shifted by +s in x
-    const TL = {x: sx(0) + sPx, y: topY};        // D' in user's notation (s,4) when using bottom origin; but here easier to reason visually
-    const TR = {x: sx(base) + sPx, y: topY};
-    const BR = {x: sx(base), y: bottomY};
-    const BL = {x: sx(0), y: bottomY};
+    const sPx = s*cell;
+    const topY = sy(height - currentHeight);
+    const TL={x:sx(0)+sPx,y:topY};
+    const TR={x:sx(base)+sPx,y:topY};
+    const BR={x:sx(base),y:bottomY};
+    const BL={x:sx(0),y:bottomY};
 
-    // set polygon points (order clockwise)
-    poly.setAttribute('points', `${BL.x},${BL.y} ${BR.x},${BR.y} ${TR.x},${TR.y} ${TL.x},${TL.y}`);
+    poly.setAttribute('points',`${BL.x},${BL.y} ${BR.x},${BR.y} ${TR.x},${TR.y} ${TL.x},${TL.y}`);
+    handleA.setAttribute('cx',TL.x); handleA.setAttribute('cy',TL.y);
+    handleB.setAttribute('cx',TR.x); handleB.setAttribute('cy',TR.y);
 
-    // update handles to top points (visible)
-    handleA.setAttribute('cx', TL.x);
-    handleA.setAttribute('cy', TL.y);
-    handleB.setAttribute('cx', TR.x);
-    handleB.setAttribute('cy', TR.y);
-
-    // update info text
-    document.getElementById('sValue').textContent = (Math.round(s*100)/100).toString();
-    // compute area using shoelace to validate
-    const polyCoords = [
-      [BL.x/cell - 1, BL.y/cell - 1], // convert back to grid coords: (x - margin)/cell
-      [BR.x/cell - 1, BR.y/cell - 1],
-      [TR.x/cell - 1, TR.y/cell - 1],
-      [TL.x/cell - 1, TL.y/cell - 1]
-    ];
-    // convert to (gridX, gridY) with origin at top-left grid corner: y positive downward
-    // but area formula is invariant — compute in grid units (格)
-    const coords = polyCoords.map(p=>[p[0], p[1]]);
-    const area = Math.abs(shoelace(coords));
-    document.getElementById('areaValue').textContent = (Math.round(area*100)/100).toString();
+    document.getElementById('height').textContent=Math.round(currentHeight*100)/100;
+    document.getElementById('areaValue').textContent=Math.round(base*currentHeight*100)/100;
   }
 
-  function shoelace(pts){
-    let sum = 0;
-    for(let i=0;i<pts.length;i++){
-      const [x1,y1] = pts[i];
-      const [x2,y2] = pts[(i+1)%pts.length];
-      sum += x1*y2 - x2*y1;
-    }
-    return 0.5 * sum;
-  }
+  drawGrid(); drawLabels(); updateVisualization();
 
-  // initial draw
-  drawGrid();
-  drawLabels();
-  s = 0;
-  updateVisualization();
+  const sRange=document.getElementById('sRange');
+  sRange.addEventListener('input', e=>{ s=parseFloat(e.target.value); updateVisualization(); });
 
-  // Range slider binding
-  const sRange = document.getElementById('sRange');
-  sRange.addEventListener('input', e=>{
-    s = parseFloat(e.target.value);
-    updateVisualization();
+  let snap=false;
+  document.getElementById('snapBtn').addEventListener('click',()=>{ 
+    snap=!snap; 
+    document.getElementById('snapBtn').textContent=snap?'已启用格点对齐':'格点对齐'; 
+    if(snap){ s=Math.round(s); sRange.value=s; updateVisualization(); } 
   });
 
-  // buttons
-  document.getElementById('resetBtn').addEventListener('click', ()=>{
-    s = 0;
-    sRange.value = 0;
-    updateVisualization();
-  });
-  let snap = false;
-  document.getElementById('snapBtn').addEventListener('click', ()=>{
-    snap = !snap;
-    document.getElementById('snapBtn').textContent = snap ? '已启用格点对齐' : '格点对齐';
-    if(snap){
-      s = Math.round(s);
-      sRange.value = s;
-      updateVisualization();
-    }
-  });
-
-  // drag handling for handles (support pointer events)
+  // 上一次轨迹
+  let lastClone = null;
   let activeHandle = null;
-  function startDrag(evt, handle){
-    evt.preventDefault();
-    activeHandle = handle;
-    handle.setPointerCapture && handle.setPointerCapture(evt.pointerId);
-  }
-  function moveDrag(evt){
-    if(!activeHandle) return;
-    // evt.clientX relative to svg bounding box
-    const rect = svg.getBoundingClientRect();
-    const x = evt.clientX - rect.left; // in CSS px relative to svg
-    // convert to viewBox coords:
-    const vb = svg.viewBox.baseVal;
-    const scaleX = vb.width / rect.width;
-    const viewX = vb.x + x * (vb.width / rect.width);
-    // compute s from top-left base: desired sPx = viewX - sx(0) for left handle, or viewX - sx(base) for right handle
-    let baseRef = (activeHandle === handleA) ? sx(0) : sx(base);
-    // But in viewBox coords we used same units (pixels)
-    let newSPx = viewX - baseRef;
-    // convert to grid units
-    let newS = newSPx / cell;
-    // optional snapping
-    if(snap) newS = Math.round(newS);
-    // constrain s to reasonable bounds so shape stays in view
-    if(newS < 0) newS = 0;
-if(newS > 20) newS = 20;
-    s = newS;
-    sRange.value = s;
-    updateVisualization();
-  }
-  function endDrag(evt){
-    if(!activeHandle) return;
-    try{ activeHandle.releasePointerCapture && activeHandle.releasePointerCapture(evt.pointerId); }catch(e){}
-    activeHandle = null;
-  }
 
-  // pointer event listeners
-  [handleA, handleB].forEach(h=>{
-    h.addEventListener('pointerdown', (e)=> startDrag(e, h));
-  });
-  // attach pointermove/up to svg (so dragging still works if pointer leaves handle)
-  svg.addEventListener('pointermove', moveDrag);
-  svg.addEventListener('pointerup', endDrag);
-  svg.addEventListener('pointercancel', endDrag);
-  svg.addEventListener('pointerleave', endDrag);
-
-  // also allow dragging by mouse (for older browsers) and touch
-  // fallback: mousedown / mousemove
-  let mouseActive = false;
-  [handleA, handleB].forEach(h=>{
-    h.addEventListener('mousedown', (e)=>{
-      mouseActive = true; activeHandle = h; e.preventDefault();
-    });
-  });
-  window.addEventListener('mousemove', (e)=>{
-    if(!mouseActive) return;
-    moveDrag(e);
-  });
-  window.addEventListener('mouseup', (e)=>{
-    mouseActive = false; activeHandle = null;
-  });
-
-  // allow click on polygon top edge to drag whole top edge
-  poly.addEventListener('pointerdown', (e)=>{
-    // if click near top edge, start dragging as "whole top"
-    // we will treat same as dragging handleB (right) but compute delta based on pointer movement
-    // easier: set activeHandle to handleB for movement but apply delta to s computed from average
-    activeHandle = poly;
+  poly.addEventListener('pointerdown',(e)=>{
+    activeHandle=poly; 
     activeHandle.setPointerCapture && activeHandle.setPointerCapture(e.pointerId);
-    // store start pointer x
-    activeHandle._startClientX = e.clientX;
-    activeHandle._startS = s;
+    activeHandle._startClientX=e.clientX; 
+    activeHandle._startClientY=e.clientY;
+    activeHandle._startS=s; 
+    activeHandle._startHeight=currentHeight;
+
+    // 克隆当前矩形作为上一次轨迹
+    if(lastClone && scene.contains(lastClone)) scene.removeChild(lastClone);
+    lastClone = poly.cloneNode();
+    lastClone.setAttribute('fill','rgba(128,128,128,0.2)');
+    lastClone.setAttribute('stroke','rgba(128,128,128,0.4)');
+    lastClone.setAttribute('stroke-width','2');
+    scene.insertBefore(lastClone, poly);
   });
+
   function moveDragPoly(e){
-    if(activeHandle !== poly) return;
-    const dx = e.clientX - (activeHandle._startClientX||e.clientX);
-    const rect = svg.getBoundingClientRect();
-    const vb = svg.viewBox.baseVal;
-    const viewDx = dx * (vb.width / rect.width);
-    const ds = viewDx / cell;
-    let newS = (activeHandle._startS || 0) + ds;
-    if(snap) newS = Math.round(newS);
-    if(newS < -base-2) newS = -base-2;
-    if(newS > base+2) newS = base+2;
-    s = newS; sRange.value = s;
+    if(activeHandle!==poly) return;
+    const dx=e.clientX-activeHandle._startClientX;
+    const dy=e.clientY-activeHandle._startClientY;
+    const rect=svg.getBoundingClientRect();
+    const vb=svg.viewBox.baseVal;
+    let newS=activeHandle._startS + dx/rect.width*vb.width/cell;
+    let newHeight=activeHandle._startHeight - dy/rect.height*vb.height/cell;
+    if(newHeight<0.5) newHeight=0.5;
+    if(newHeight>height) newHeight=height;
+    if(newS<0) newS=0;
+    if(newS>20) newS=20;
+    s=newS; currentHeight=newHeight;
     updateVisualization();
   }
+
   function endDragPoly(e){
-    if(activeHandle === poly){
-      try{ activeHandle.releasePointerCapture && activeHandle.releasePointerCapture(e.pointerId); }catch(e){}
+    if(activeHandle===poly){
+      try{ activeHandle.releasePointerCapture && activeHandle.releasePointerCapture(e.pointerId);}catch(e){}
       activeHandle = null;
     }
   }
-  svg.addEventListener('pointermove', moveDragPoly);
-  svg.addEventListener('pointerup', endDragPoly);
-  svg.addEventListener('pointercancel', endDragPoly);
 
-  // ensure initial display values (base/height)
-  document.getElementById('base').textContent = base;
-  document.getElementById('height').textContent = height;
-
-  // Expose simple keyboard shortcuts
-  window.addEventListener('keydown', (e)=>{
-    if(e.key === 'ArrowLeft'){ s = Math.max(s-0.1, -base-2); sRange.value=s; updateVisualization(); }
-    if(e.key === 'ArrowRight'){ s = Math.min(s+0.1, base+2); sRange.value=s; updateVisualization(); }
-    if(e.key === '0'){ s=0; sRange.value=0; updateVisualization(); }
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    s=0; currentHeight=height; sRange.value=0; updateVisualization();
+    if(lastClone && scene.contains(lastClone)) scene.removeChild(lastClone);
+    lastClone = null;
   });
+
+  svg.addEventListener('pointermove',moveDragPoly);
+  svg.addEventListener('pointerup',endDragPoly);
+  svg.addEventListener('pointercancel',endDragPoly);
+
 })();
 </script>
 </body>
-</html> 
+</html>
