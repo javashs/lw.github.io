@@ -38,6 +38,16 @@ function showTab(url, btn) {
   buttons.forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
+function showTab(url, btn) {
+  // 在 URL 后加随机参数，避免浏览器缓存
+  const noCacheUrl = url + '?t=' + new Date().getTime();
+  document.getElementById('tabFrame').src = noCacheUrl;
+
+  // 切换按钮样式
+  const buttons = document.querySelectorAll('.tab-button');
+  buttons.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
 </script>
 
 </body>
